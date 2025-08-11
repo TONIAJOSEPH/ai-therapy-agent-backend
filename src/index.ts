@@ -21,7 +21,12 @@ const app = express(); //instantiate express app
 
 // middlewares
 app.use(helmet()); // Security headers
-app.use(cors()); // Enable CORS
+app.use(
+  cors({
+    origin: ["https://ai-therapy-agent.vercel.app"],
+    credentials: true,
+  })
+); // Enable CORS
 app.use(express.json()); // Parse JSON bodies
 app.use(morgan("dev")); // HTTP request logger
 
