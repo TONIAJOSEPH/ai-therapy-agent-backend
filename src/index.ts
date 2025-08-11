@@ -46,10 +46,6 @@ app.get("/api/chat", (req: Request, res: Response) => {
   res.send("hi how may i help you today?");
 });
 
-// app.listen(PORT, () => {
-//   console.log(`server is running on port ${PORT}`);
-// });
-
 // Start server
 const startServer = async () => {
   try {

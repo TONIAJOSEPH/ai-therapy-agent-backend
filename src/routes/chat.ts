@@ -29,6 +29,3 @@ router.post("/sessions/:sessionId/messages", sendMessage);
 router.get("/sessions/:sessionId/history", getChatHistory);
 
 export default router;
-
-// let response = pm.response.json()
-// pm.globals.set("access_token", response.access_token)
