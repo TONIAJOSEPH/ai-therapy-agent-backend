@@ -1,6 +1,6 @@
 import express from "express";
 import { auth } from "../middlewares/auth";
-import { createMood } from "../controllers/moodController";
+import { createMood, getMood } from "../controllers/moodController";
 
 const router = express.Router();
 
@@ -9,5 +9,8 @@ router.use(auth);
 
 // Track a new mood entry
 router.post("/", createMood);
+
+//get mood
+router.get("/", getMood);
 
 export default router;

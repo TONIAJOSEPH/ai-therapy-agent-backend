@@ -10,7 +10,6 @@ export const logActivity = async (
   next: NextFunction
 ) => {
   try {
-    console.log(req.body);
     const { type, name, description, duration, difficulty, feedback } =
       req.body;
     const userId = req.user?._id;
@@ -44,7 +43,7 @@ export const logActivity = async (
       feedback,
       timestamp: activity.timestamp,
     });
-    console.log("activity be", activity);
+
     res.status(201).json({
       success: true,
       data: activity,
@@ -67,7 +66,7 @@ export const getAllActivities = async (
       return res.status(401).json({ message: "User not authenticated" });
     }
 
-    const activityData = await Activity.find();
+    const activityData = await Activity.find({ userId: userId });
     logger.info(`Activity find for user ${userId}`);
 
     // Send activity completion event to Inngest

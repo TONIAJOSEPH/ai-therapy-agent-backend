@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { Mood } from "../models/mood";
 import { logger } from "../utils/logger";
 import { sendMoodUpdateEvent } from "../utils/inngestEvents";
+import { Types } from "mongoose";
 
 // Create a new mood entry
 export const createMood = async (
@@ -10,7 +11,6 @@ export const createMood = async (
   next: NextFunction
 ) => {
   try {
-    console.log("mood saved in backend", req.body);
     const { score, note, context, activities } = req.body;
     const userId = req.user?._id; // From auth middleware
 
@@ -46,5 +46,23 @@ export const createMood = async (
     });
   } catch (error) {
     next(error);
+  }
+};
+
+//get mood
+export const getMood = async (req: Request, res: Response) => {
+  try {
+    const userId = new Types.ObjectId(req.user?.id);
+
+    // Find session by sessionId instead of _id
+    const moodEntries = await Mood.find({ userId: userId });
+    if (!moodEntries) {
+      return res.status(404).json({ message: "Session not found" });
+    }
+
+    res.json(moodEntries);
+  } catch (error) {
+    logger.error("Error fetching mood:", error);
+    res.status(500).json({ message: "Error fetching mood" });
   }
 };

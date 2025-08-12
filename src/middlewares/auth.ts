@@ -12,14 +12,10 @@ declare global {
 }
 
 export const auth = async (req: Request, res: Response, next: NextFunction) => {
-  console.log("in auth backend middleware", req.header);
   try {
     const token = req.header("Authorization")?.replace("Bearer ", "");
 
-    console.log("in auth backend middleware request token", token);
-
     if (!token) {
-      console.log("no token");
       return res.status(401).json({ message: "Authentication required" });
     }
 
@@ -34,10 +30,9 @@ export const auth = async (req: Request, res: Response, next: NextFunction) => {
     }
 
     req.user = user;
-    console.log("auth middleware req", req.user);
+
     next();
   } catch (error) {
-    console.log("auth middleware error");
     res.status(401).json({ message: "Invalid authentication token" });
   }
 };

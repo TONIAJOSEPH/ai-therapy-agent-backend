@@ -15,8 +15,6 @@ const genAI = new GoogleGenerativeAI(
 
 // Create a new chat session
 export const createChatSession = async (req: Request, res: Response) => {
-  console.log("create caht session");
-
   try {
     // Check if user is authenticated
     if (!req.user || !req.user.id) {
@@ -60,7 +58,6 @@ export const createChatSession = async (req: Request, res: Response) => {
 
 // Send a message in the chat session
 export const sendMessage = async (req: Request, res: Response) => {
-  console.log("send chat message from client");
   try {
     const { sessionId } = req.params;
     const { message } = req.body;
@@ -236,7 +233,6 @@ export const getSessionHistory = async (req: Request, res: Response) => {
 };
 
 export const getChatSession = async (req: Request, res: Response) => {
-  console.log("checking chat session");
   try {
     const { sessionId } = req.params;
     logger.info(`Getting chat session: ${sessionId}`);
@@ -278,11 +274,9 @@ export const getChatHistory = async (req: Request, res: Response) => {
 //get all chat sessions
 
 export const getAllChatSession = async (req: Request, res: Response) => {
-  console.log("checking all chat session");
   try {
-    // const { sessionId } = req.params;
-    // logger.info(`Getting chat session: ${sessionId}`);
-    const chatSession = await ChatSession.find();
+    const userId = new Types.ObjectId(req.user?.id);
+    const chatSession = await ChatSession.find({ userId: userId });
     if (!chatSession) {
       logger.warn(`Chat session not found`);
       return res.status(404).json({ error: "Chat session not found" });
