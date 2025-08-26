@@ -1,11 +1,32 @@
 import { inngest } from "./index";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { logger } from "../utils/logger";
+import { Mood } from "../models/mood";
+import { Activity } from "../models/activity";
 
 // Initialize Gemini
 const genAI = new GoogleGenerativeAI(
   process.env.GEMINI_API_KEY || "AIzaSyCdRTK81uJi6o-A0RD6_4kGt6BjNqGnE4o"
 );
+
+const typeMap: Record<string, string> = {
+  yoga: "meditation",
+  running: "exercise",
+  gym: "exercise",
+  walk: "walking",
+  stroll: "walking",
+  book: "reading",
+  read: "reading",
+  diary: "journaling",
+  write: "journaling",
+  counselling: "therapy",
+  counseling: "therapy",
+};
+
+function mapAIType(aiType: string) {
+  const normalized = aiType.toLowerCase().trim();
+  return typeMap[normalized] || "meditation"; // default fallback
+}
 
 // Function to handle chat message processing
 export const processChatMessage = inngest.createFunction(
@@ -237,14 +258,14 @@ export const generateActivityRecommendations = inngest.createFunction(
       // Get user's mood history and activity history
       const userContext = await step.run("get-user-context", async () => {
         // Here you would typically fetch user's history from your database
+        const moods = await Mood.find({ userId: event.data.userId });
+        const activities = await Activity.find({ userId: event.data.userId });
         return {
-          recentMoods: event.data.recentMoods,
-          completedActivities: event.data.completedActivities,
-          preferences: event.data.preferences,
+          recentMoods: moods,
+          completedActivities: activities,
+          preferences: event.data.context,
         };
       });
-
-      console.log("generateactivityrecomendations", userContext);
 
       // Generate recommendations using Gemini
       const recommendations = await step.run(
@@ -252,30 +273,67 @@ export const generateActivityRecommendations = inngest.createFunction(
         async () => {
           const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
-          const prompt = `Based on the following user context, generate personalized activity recommendations:
+          const prompt = `Based on the following user context, generate 3 to 5 personalized activity recommendations:
         User Context: ${JSON.stringify(userContext)}
-        
-        Please provide:
-        1. 3-5 personalized activity recommendations
-        2. Reasoning for each recommendation
-        3. Expected benefits
-        4. Difficulty level
-        5. Estimated duration
-        
-        Format the response as a JSON object.`;
+        Output the result ONLY as a JSON array named "activities" where each object has exactly these keys:
+ 
+1. activityType (string) → one of: meditation, exercise, walking, reading, journaling, therapy.
+2. activity (string) → short activity title.
+3. reasoning (string) → reason for recommending this activity.
+4. estimatedDuration (number) → duration in minutes, numeric only (no text like "minutes").
+5. difficultyLevel (string) → Easy, Medium, or Hard.
+6. expectedBenefits (string) → benefits of the activity.
+ 
+Example output format:
+{
+  "activities": [
+    {
+      "activityType": "meditation",
+      "activity": "Body Scan Meditation",
+      "reasoning": "Based on your preferences...",
+      "estimatedDuration": 15,
+      "difficultyLevel": "Easy",
+      "expectedBenefits": "Reduced stress and anxiety..."
+    }
+  ]
+}
+ 
+Do NOT include any extra text, explanations, or code fences — only return valid JSON matching the example.
+     
+  `;
 
           const result = await model.generateContent(prompt);
-          const response = await result.response;
-          const text = response.text();
-          console.log("generate-activity-recomendations", text);
-          // return JSON.parse(text);
-          return text;
+          const analysisText = result.response.text().trim();
+          const cleanAnalysisText = analysisText
+            .replace(/```json\n|\n```/g, "")
+            .trim();
+          return JSON.parse(cleanAnalysisText);
         }
       );
 
       // Store the recommendations
       await step.run("store-recommendations", async () => {
         // Here you would typically store the recommendations in your database
+        if (
+          !recommendations.activities ||
+          !Array.isArray(recommendations.activities)
+        ) {
+          throw new Error("AI did not return a valid 'activities' array");
+        }
+
+        const docs = recommendations.activities.map((rec: any) => ({
+          userId: event.data.userId,
+          type: mapAIType(rec.activityType),
+          name: rec.activity,
+          description: rec.reasoning,
+          duration: rec.estimatedDuration,
+          difficulty: rec.difficultyLevel,
+          feedback: rec.expectedBenefits,
+          timestamp: new Date(),
+          isRecommendation: true,
+        }));
+
+        await Activity.insertMany(docs);
         logger.info("Activity recommendations stored successfully");
         return recommendations;
       });

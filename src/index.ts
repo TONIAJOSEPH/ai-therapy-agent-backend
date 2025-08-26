@@ -24,7 +24,6 @@ app.use(helmet()); // Security headers
 app.use(
   cors({
     origin: ["https://ai-therapy-agent.vercel.app", "http://localhost:3000"],
-
     credentials: true,
   })
 ); // Enable CORS

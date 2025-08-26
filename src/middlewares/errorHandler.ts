@@ -28,7 +28,6 @@ export const errorHandler = (
       message: err.message,
     });
   }
-
   // Log unexpected errors
   logger.error("Unexpected error:", err);
 
